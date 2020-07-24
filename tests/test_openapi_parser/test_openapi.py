@@ -46,7 +46,7 @@ class TestGeneratorData:
 class TestModel:
     def test_build(self, mocker):
         from_data = mocker.patch(f"{MODULE_NAME}.Model.from_data")
-        in_data = {1: mocker.MagicMock(), 2: mocker.MagicMock()}
+        in_data = {1: oai.Schema.construct(), 2: oai.Schema.construct()}
         schema_1 = mocker.MagicMock()
         schema_2 = mocker.MagicMock()
         from_data.side_effect = [schema_1, schema_2]
@@ -60,6 +60,12 @@ class TestModel:
             schema_1.reference.class_name: schema_1,
             schema_2.reference.class_name: schema_2,
         }
+
+    def test_build_parse_error_on_reference(self):
+        from openapi_python_client.openapi_parser.openapi import Model
+
+        with pytest.raises(ParseError):
+            Model.build(schemas={"1": oai.Reference.construct()})
 
     def test_from_data(self, mocker):
         from openapi_python_client.openapi_parser.properties import Property
@@ -101,12 +107,6 @@ class TestModel:
             relative_imports={required_imports, optional_imports,},
             description=in_data.description,
         )
-
-    def test_from_data_parse_error_on_reference(self):
-        from openapi_python_client.openapi_parser.openapi import Model
-
-        with pytest.raises(ParseError):
-            Model.from_data(data=oai.Reference.construct(), name="")
 
 
 class TestEndpoint:

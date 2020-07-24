@@ -181,7 +181,7 @@ class Model:
     relative_imports: Set[str]
 
     @staticmethod
-    def from_data(*, data: Union[oai.Reference, oai.Schema], name: str) -> Model:
+    def from_data(*, data: oai.Schema, name: str) -> Model:
         """ A single Model from its OAI data
 
         Args:
@@ -189,8 +189,6 @@ class Model:
             name: Name by which the schema is referenced, such as a model name.
                 Used to infer the type name if a `title` property is not available.
         """
-        if isinstance(data, oai.Reference):
-            raise ParseError("Reference schemas are not supported.")
         required_set = set(data.required or [])
         required_properties: List[Property] = []
         optional_properties: List[Property] = []
@@ -221,6 +219,18 @@ class Model:
         """ Get a list of Schemas from an OpenAPI dict """
         result = {}
         for name, data in schemas.items():
+            if isinstance(data, oai.Reference):
+                raise ParseError("Reference schemas are not supported.")
+            if data.enum:
+                # This looks like it does nothing, but it registers the Enum globally so it will be built later
+                EnumProperty(
+                    name=name,
+                    required=True,
+                    values=EnumProperty.values_from_list(data.enum),
+                    title=data.title or name,
+                    default=data.default,
+                )
+                continue
             s = Model.from_data(data=data, name=name)
             result[s.reference.class_name] = s
         return result
